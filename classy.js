@@ -10,7 +10,7 @@
   else this.Class = definition()
 }(function (undefined) {
   var
-    CLASSY_VERSION = '1.4',
+    CLASSY_VERSION = '1.4.1',
     context = this,
     old = context.Class,
     disable_constructor = false;
@@ -118,6 +118,19 @@
         })(value, name) : value
     }
 
+    /* __new__ constructor suport */
+    if (proeperties.__new__ && typeof(property.__new__)==='function'){
+      proeperties.__new__(prototype, property.__classvars__);
+    }
+
+    /* if class has __repr__ define the toString method based on this */
+    if (properties.__repr__ && 
+        typeof(properties.__new__)==='function' && 
+        !properties.toString
+      ){
+      prototype.toString = properties.__repr__;
+    }
+
     /* dummy constructor */
     var rv = function() {
       if (disable_constructor)
@@ -155,6 +168,32 @@
     }
     return rv;
   };
+
+  /* instaciate with properties functionality */
+  Class.$withProperties = function(data, validators){
+    var key, vr, value = cheapNew(this), validators=validators||{};
+
+    function mkGetter(name, fn){
+      fn['get'+name] = function(){
+        return this[name];
+      }
+    }
+    function mkSetter(name, fn, validator){
+      var val = (validator) ? validator : function(v){ return v };
+      fn['set'+name] = function(value){
+        this[name] = val(value);
+        return this;
+      }
+    }
+    for (key in data){
+      mkGetter(key, this);
+      mkSetter(key, this);
+      value = getOwnProperty(data, key);
+      if (value !== undefined);
+        rv['set'+key](value);
+    }
+    return rv;
+  }
 
   /* export the class */
   return Class;
